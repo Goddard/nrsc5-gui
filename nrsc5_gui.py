@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
 
-#    NRSC5 GUI - A graphical interface for nrsc5
-#    Copyright (C) 2017-2019  Cody Nybo & Clayton Smith
+#   NRSC5 GUI - A graphical interface for nrsc5
+#   Copyright (C) 2017-2019  Cody Nybo & Clayton Smith
 #
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
+#   This program is free software: you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation, either version 3 of the License, or
+#   (at your option) any later version.
 #
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
+#   This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
 #
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#   You should have received a copy of the GNU General Public License
+#   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import glob
 import io
@@ -32,6 +32,7 @@ from PIL import Image, ImageFont, ImageDraw
 import pyaudio
 
 import gi
+
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, GObject, Gdk, GdkPixbuf, GLib
 
@@ -47,11 +48,14 @@ class NRSC5GUI(object):
     log_level = 20  # decrease to 10 to enable debug logs
 
     def __init__(self):
-        logging.basicConfig(level=self.log_level,
-                            format="%(asctime)s %(levelname)-5s %(filename)s:%(lineno)d: %(message)s",
-                            datefmt="%H:%M:%S")
+        logging.basicConfig(
+            level=self.log_level,
+            format="%(asctime)s %(levelname)-5s %(filename)s:%(lineno)d: %(message)s",
+            datefmt="%H:%M:%S",
+        )
 
-        GObject.threads_init()
+        # MODIFIED: GObject.threads_init() is deprecated and no longer needed.
+        # GObject.threads_init()
 
         self.get_controls()  # get controls and windows
         self.init_stream_info()  # initilize stream info and clear status widgets
@@ -86,8 +90,8 @@ class NRSC5GUI(object):
                 "scale": True,
                 "window_pos": (0, 0),
                 "window_size": (782, 632),
-                "animation_speed": 0.5
-            }
+                "animation_speed": 0.5,
+            },
         }
 
         # setup bookmarks listview
@@ -114,9 +118,13 @@ class NRSC5GUI(object):
     def display_logo(self):
         if self.station_str in self.station_logos:
             # show station logo if it's cached
-            logo = os.path.join(self.aas_dir, self.station_logos[self.station_str][self.stream_num])
+            logo = os.path.join(
+                self.aas_dir, self.station_logos[self.station_str][self.stream_num]
+            )
             if os.path.isfile(logo):
-                self.stream_info["logo"] = self.station_logos[self.station_str][self.stream_num]
+                self.stream_info["logo"] = self.station_logos[self.station_str][
+                    self.stream_num
+                ]
                 pixbuf = GdkPixbuf.Pixbuf.new_from_file(logo)
                 pixbuf = pixbuf.scale_simple(200, 200, GdkPixbuf.InterpType.HYPER)
                 self.img_cover.set_from_pixbuf(pixbuf)
@@ -127,7 +135,6 @@ class NRSC5GUI(object):
     def on_btn_play_clicked(self, _btn):
         """start playback"""
         if not self.playing:
-
             # update all of the spin buttons to prevent the text from sticking
             self.spin_freq.update()
             self.spin_stream.update()
@@ -153,13 +160,15 @@ class NRSC5GUI(object):
             self.play()
 
             self.station_str = str(self.spin_freq.get_value())
-            self.stream_num = int(self.spin_stream.get_value())-1
+            self.stream_num = int(self.spin_stream.get_value()) - 1
 
             self.display_logo()
 
             # check if station is bookmarked
             self.bookmarked = False
-            freq = int((self.spin_freq.get_value()+0.005)*100) + int(self.spin_stream.get_value())
+            freq = int((self.spin_freq.get_value() + 0.005) * 100) + int(
+                self.spin_stream.get_value()
+            )
             for bookmark in self.bookmarks:
                 if bookmark[2] == freq:
                     self.bookmarked = True
@@ -204,13 +213,17 @@ class NRSC5GUI(object):
 
     def on_btn_bookmark_clicked(self, _btn):
         # pack frequency and channel number into one int
-        freq = int((self.spin_freq.get_value()+0.005)*100) + int(self.spin_stream.get_value())
+        freq = int((self.spin_freq.get_value() + 0.005) * 100) + int(
+            self.spin_stream.get_value()
+        )
 
         # create bookmark
         bookmark = [
-            "{:4.1f}-{:1.0f}".format(self.spin_freq.get_value(), self.spin_stream.get_value()),
+            "{:4.1f}-{:1.0f}".format(
+                self.spin_freq.get_value(), self.spin_stream.get_value()
+            ),
             self.stream_info["callsign"],
-            freq
+            freq,
         ]
         self.bookmarked = True
         self.bookmarks.append(bookmark)
@@ -223,7 +236,9 @@ class NRSC5GUI(object):
     def on_btn_delete_clicked(self, _btn):
         # select current station if not on bookmarks page
         if self.notebook_main.get_current_page() != 3:
-            station = int((self.spin_freq.get_value()+0.005)*100) + int(self.spin_stream.get_value())
+            station = int((self.spin_freq.get_value() + 0.005) * 100) + int(
+                self.spin_stream.get_value()
+            )
             for i in range(len(self.ls_bookmarks)):
                 if self.ls_bookmarks[i][2] == station:
                     self.lv_bookmarks.set_cursor(i)
@@ -309,7 +324,7 @@ class NRSC5GUI(object):
         self.stream_info["cover"] = ""
         self.stream_info["logo"] = ""
         self.stream_info["bitrate"] = 0
-        self.stream_num = int(self.spin_stream.get_value())-1
+        self.stream_num = int(self.spin_stream.get_value()) - 1
         if self.playing:
             self.display_logo()
 
@@ -324,7 +339,7 @@ class NRSC5GUI(object):
             station = treeview.get_model().get_value(tree_iter, 2)
 
             # set frequency and stream
-            self.spin_freq.set_value(float(int(station/10)/10.0))
+            self.spin_freq.set_value(float(int(station / 10) / 10.0))
             self.spin_stream.set_value(station % 10)
 
             # stop playback if playing
@@ -368,18 +383,30 @@ class NRSC5GUI(object):
                 self.map_data["map_mode"] = 0
                 map_file = os.path.join("map", "traffic_map.png")
                 if os.path.isfile(map_file):
-                    map_img = Image.open(map_file).resize((200, 200), Image.LANCZOS)
+                    # MODIFIED: Image.LANCZOS is deprecated.
+                    map_img = Image.open(map_file).resize(
+                        (200, 200), Image.Resampling.LANCZOS
+                    )
                     self.img_map.set_from_pixbuf(img_to_pixbuf(map_img))
                 else:
-                    self.img_map.set_from_stock(Gtk.STOCK_MISSING_IMAGE, Gtk.IconSize.LARGE_TOOLBAR)
+                    # MODIFIED: set_from_stock is deprecated.
+                    self.img_map.set_from_icon_name(
+                        "image-missing", Gtk.IconSize.LARGE_TOOLBAR
+                    )
 
             elif btn == self.rad_map_weather:
                 self.map_data["map_mode"] = 1
                 if os.path.isfile(self.map_data["weather_now"]):
-                    map_img = Image.open(self.map_data["weather_now"]).resize((200, 200), Image.LANCZOS)
+                    # MODIFIED: Image.LANCZOS is deprecated.
+                    map_img = Image.open(self.map_data["weather_now"]).resize(
+                        (200, 200), Image.Resampling.LANCZOS
+                    )
                     self.img_map.set_from_pixbuf(img_to_pixbuf(map_img))
                 else:
-                    self.img_map.set_from_stock(Gtk.STOCK_MISSING_IMAGE, Gtk.IconSize.LARGE_TOOLBAR)
+                    # MODIFIED: set_from_stock is deprecated.
+                    self.img_map.set_from_icon_name(
+                        "image-missing", Gtk.IconSize.LARGE_TOOLBAR
+                    )
 
     def on_btn_map_clicked(self, _btn):
         """open map viewer window"""
@@ -407,24 +434,34 @@ class NRSC5GUI(object):
 
     def check_status(self):
         """update status information"""
+
         def update():
-            Gdk.threads_enter()
+            # MODIFIED: Gdk.threads_enter() is deprecated.
+            # Gdk.threads_enter()
             try:
                 image_path = ""
                 image = ""
-                ber = [self.stream_info["ber"][i]*100 for i in range(4)]
+                ber = [self.stream_info["ber"][i] * 100 for i in range(4)]
                 self.txt_title.set_text(self.stream_info["title"])
                 self.txt_artist.set_text(self.stream_info["artist"])
                 self.txt_album.set_text(self.stream_info["album"])
-                self.lbl_bitrate.set_label("{:3.1f} kbps".format(self.stream_info["bitrate"]))
-                self.lbl_bitrate2.set_label("{:3.1f} kbps".format(self.stream_info["bitrate"]))
+                self.lbl_bitrate.set_label(
+                    "{:3.1f} kbps".format(self.stream_info["bitrate"])
+                )
+                self.lbl_bitrate2.set_label(
+                    "{:3.1f} kbps".format(self.stream_info["bitrate"])
+                )
                 self.lbl_error.set_label("{:2.2f}% Error ".format(ber[1]))
                 self.lbl_callsign.set_label(" " + self.stream_info["callsign"])
                 self.lbl_name.set_label(self.stream_info["callsign"])
                 self.lbl_slogan.set_label(self.stream_info["slogan"])
                 self.lbl_slogan.set_tooltip_text(self.stream_info["slogan"])
-                self.lbl_mer_lower.set_label("{:1.2f} dB".format(self.stream_info["mer"][0]))
-                self.lbl_mer_upper.set_label("{:1.2f} dB".format(self.stream_info["mer"][1]))
+                self.lbl_mer_lower.set_label(
+                    "{:1.2f} dB".format(self.stream_info["mer"][0])
+                )
+                self.lbl_mer_upper.set_label(
+                    "{:1.2f} dB".format(self.stream_info["mer"][1])
+                )
                 self.lbl_ber_now.set_label("{:1.3f}% (Now)".format(ber[0]))
                 self.lbl_ber_avg.set_label("{:1.3f}% (Avg)".format(ber[1]))
                 self.lbl_ber_min.set_label("{:1.3f}% (Min)".format(ber[2]))
@@ -432,7 +469,9 @@ class NRSC5GUI(object):
 
                 if self.cb_auto_gain.get_active():
                     self.spin_gain.set_value(self.stream_info["gain"])
-                    self.lbl_gain.set_label("{:2.1f}dB".format(self.stream_info["gain"]))
+                    self.lbl_gain.set_label(
+                        "{:2.1f}dB".format(self.stream_info["gain"])
+                    )
 
                 if self.last_xhdr == 0:
                     image_path = os.path.join(self.aas_dir, self.stream_info["cover"])
@@ -444,7 +483,11 @@ class NRSC5GUI(object):
                         self.img_cover.clear()
 
                 # resize and display image if it changed and exists
-                if self.xhdr_changed and self.last_image != image and os.path.isfile(image_path):
+                if (
+                    self.xhdr_changed
+                    and self.last_image != image
+                    and os.path.isfile(image_path)
+                ):
                     self.xhdr_changed = False
                     self.last_image = image
                     pixbuf = GdkPixbuf.Pixbuf.new_from_file(image_path)
@@ -452,10 +495,13 @@ class NRSC5GUI(object):
                     self.img_cover.set_from_pixbuf(pixbuf)
                     logging.debug("Image changed")
             finally:
-                Gdk.threads_leave()
+                # MODIFIED: Gdk.threads_leave() is deprecated.
+                # Gdk.threads_leave()
+                pass
 
         if self.playing:
-            GObject.idle_add(update)
+            # MODIFIED: GObject.idle_add is deprecated.
+            GLib.idle_add(update)
             self.status_timer = threading.Timer(1, self.check_status)
             self.status_timer.start()
 
@@ -464,9 +510,11 @@ class NRSC5GUI(object):
         match = regex.match(filename)
 
         if match:
-            tile_x = int(match.group(1))-1
-            tile_y = int(match.group(2))-1
-            utc_time = datetime.strptime(match.group(3), "%Y%m%d_%H%M").replace(tzinfo=timezone.utc)
+            tile_x = int(match.group(1)) - 1
+            tile_y = int(match.group(2)) - 1
+            utc_time = datetime.strptime(match.group(3), "%Y%m%d_%H%M").replace(
+                tzinfo=timezone.utc
+            )
             timestamp = int(utc_time.timestamp())
 
             # check if the tile has already been loaded
@@ -476,7 +524,9 @@ class NRSC5GUI(object):
             logging.debug("Got traffic map tile: %s, %s", tile_x, tile_y)
 
             self.map_tiles[tile_x][tile_y] = timestamp
-            self.traffic_map.paste(Image.open(io.BytesIO(data)), (tile_y*200, tile_x*200))
+            self.traffic_map.paste(
+                Image.open(io.BytesIO(data)), (tile_y * 200, tile_x * 200)
+            )
 
             # check if all of the tiles are loaded
             if self.check_tiles(timestamp):
@@ -485,7 +535,10 @@ class NRSC5GUI(object):
 
                 # display on map page
                 if self.rad_map_traffic.get_active():
-                    img_map = self.traffic_map.resize((200, 200), Image.LANCZOS)
+                    # MODIFIED: Image.LANCZOS is deprecated.
+                    img_map = self.traffic_map.resize(
+                        (200, 200), Image.Resampling.LANCZOS
+                    )
                     self.img_map.set_from_pixbuf(img_to_pixbuf(img_map))
 
                 if self.map_viewer is not None:
@@ -496,12 +549,16 @@ class NRSC5GUI(object):
         match = regex.match(filename)
 
         if match:
-            utc_time = datetime.strptime(match.group(2), "%Y%m%d_%H%M").replace(tzinfo=timezone.utc)
+            utc_time = datetime.strptime(match.group(2), "%Y%m%d_%H%M").replace(
+                tzinfo=timezone.utc
+            )
             timestamp = int(utc_time.timestamp())
             map_id = self.map_data["weather_id"]
 
             if match.group(1) != map_id:
-                logging.error("Received weather overlay with the wrong ID: %s", match.group(1))
+                logging.error(
+                    "Received weather overlay with the wrong ID: %s", match.group(1)
+                )
                 return
 
             if self.map_data["weather_time"] == timestamp:
@@ -510,19 +567,27 @@ class NRSC5GUI(object):
             logging.debug("Got weather overlay")
 
             self.map_data["weather_time"] = timestamp
-            weather_map_path = os.path.join("map", "weather_map_{}_{}.png".format(map_id, timestamp))
+            weather_map_path = os.path.join(
+                "map", "weather_map_{}_{}.png".format(map_id, timestamp)
+            )
 
             # create weather map
             try:
                 map_path = os.path.join("map", "base_map_" + map_id + ".png")
                 if not os.path.isfile(map_path):
-                    self.make_base_map(self.map_data["weather_id"], self.map_data["weather_pos"])
+                    self.make_base_map(
+                        self.map_data["weather_id"], self.map_data["weather_pos"]
+                    )
 
                 img_map = Image.open(map_path).convert("RGBA")
-                timestamp_pos = (img_map.size[0]-235, img_map.size[1]-29)
-                img_ts = self.make_timestamp(utc_time.astimezone(), img_map.size, timestamp_pos)
+                timestamp_pos = (img_map.size[0] - 235, img_map.size[1] - 29)
+                img_ts = self.make_timestamp(
+                    utc_time.astimezone(), img_map.size, timestamp_pos
+                )
                 img_radar = Image.open(io.BytesIO(data)).convert("RGBA")
-                img_radar = img_radar.resize(img_map.size, Image.LANCZOS)
+                img_radar = img_radar.resize(
+                    img_map.size, Image.Resampling.LANCZOS
+                )  # MODIFIED
                 img_map = Image.alpha_composite(img_map, img_radar)
                 img_map = Image.alpha_composite(img_map, img_ts)
                 img_map.save(weather_map_path)
@@ -530,7 +595,9 @@ class NRSC5GUI(object):
 
                 # display on map page
                 if self.rad_map_weather.get_active():
-                    img_map = img_map.resize((200, 200), Image.LANCZOS)
+                    img_map = img_map.resize(
+                        (200, 200), Image.Resampling.LANCZOS
+                    )  # MODIFIED
                     self.img_map.set_from_pixbuf(img_to_pixbuf(img_map))
 
                 self.process_weather_maps()  # get rid of old maps and add new ones to the list
@@ -547,7 +614,7 @@ class NRSC5GUI(object):
 
         for line in data.decode().split("\n"):
             if "DWR_Area_ID=" in line:
-                regex = re.compile("^DWR_Area_ID=\"(.+)\"$")
+                regex = re.compile('^DWR_Area_ID="(.+)"$')
                 match = regex.match(line)
                 weather_id = match.group(1)
 
@@ -557,7 +624,10 @@ class NRSC5GUI(object):
                 weather_pos = [float(match.group(i)) for i in range(1, 5)]
 
         if weather_id is not None and weather_pos is not None:
-            if self.map_data["weather_id"] != weather_id or self.map_data["weather_pos"] != weather_pos:
+            if (
+                self.map_data["weather_id"] != weather_id
+                or self.map_data["weather_pos"] != weather_pos
+            ):
                 logging.debug("Got position: (%n, %n) (%n, %n)", *weather_pos)
                 self.map_data["weather_id"] = weather_id
                 self.map_data["weather_pos"] = weather_pos
@@ -579,7 +649,7 @@ class NRSC5GUI(object):
                 timestamp = int(match.group(2))
 
                 # remove weather maps older than 12 hours
-                if now - timestamp > 60*60*12:
+                if now - timestamp > 60 * 60 * 12:
                     try:
                         if file in self.weather_maps:
                             self.weather_maps.pop(self.weather_maps.index(file))
@@ -617,12 +687,14 @@ class NRSC5GUI(object):
                 logging.debug("Creating new map: %s", map_path)
                 map_upper_left = self.map_image_coordinates(pos[0], pos[1])
                 map_lower_right = self.map_image_coordinates(pos[2], pos[3])
-                map_img = Image.open(self.MAP_FILE).crop(map_upper_left + map_lower_right)
+                map_img = Image.open(self.MAP_FILE).crop(
+                    map_upper_left + map_lower_right
+                )
                 map_img.save(map_path)
                 logging.debug("Finished creating map")
         else:
             logging.error("Map file not found: %s", self.MAP_FILE)
-            map_img = Image.new("RGBA", (pos[2]-pos[1], pos[3]-pos[1]), "white")
+            map_img = Image.new("RGBA", (pos[2] - pos[1], pos[3] - pos[1]), "white")
             map_img.save(map_path)
 
     def check_tiles(self, timestamp):
@@ -641,19 +713,25 @@ class NRSC5GUI(object):
         img_ts = Image.new("RGBA", size, (0, 0, 0, 0))
         draw = ImageDraw.Draw(img_ts)
         font = ImageFont.truetype("DejaVuSansMono.ttf", 24)
-        draw.rectangle((pos_x, pos_y, pos_x+231, pos_y+25), outline="black", fill=(128, 128, 128, 96))
-        draw.text((pos_x+3, pos_y), text, fill="black", font=font)
+        draw.rectangle(
+            (pos_x, pos_y, pos_x + 231, pos_y + 25),
+            outline="black",
+            fill=(128, 128, 128, 96),
+        )
+        draw.text((pos_x + 3, pos_y), text, fill="black", font=font)
         return img_ts
 
     def audio_worker(self):
         audio = pyaudio.PyAudio()
         try:
             index = audio.get_default_output_device_info()["index"]
-            stream = audio.open(format=pyaudio.paInt16,
-                                channels=2,
-                                rate=self.AUDIO_SAMPLE_RATE,
-                                output_device_index=index,
-                                output=True)
+            stream = audio.open(
+                format=pyaudio.paInt16,
+                channels=2,
+                rate=self.AUDIO_SAMPLE_RATE,
+                output_device_index=index,
+                output=True,
+            )
         except OSError:
             logging.warning("No audio output device available")
             stream = None
@@ -676,7 +754,9 @@ class NRSC5GUI(object):
         if self.stream_info["bitrate"] == 0:
             self.stream_info["bitrate"] = kbps
         else:
-            self.stream_info["bitrate"] = 0.99 * self.stream_info["bitrate"] + 0.01 * kbps
+            self.stream_info["bitrate"] = (
+                0.99 * self.stream_info["bitrate"] + 0.01 * kbps
+            )
 
     def update_ber(self, cber):
         ber = self.stream_info["ber"]
@@ -730,9 +810,13 @@ class NRSC5GUI(object):
                     for component in service.components:
                         if component.type == nrsc5.ComponentType.DATA:
                             if component.data.mime == nrsc5.MIMEType.PRIMARY_IMAGE:
-                                self.streams[service.number-1]["image"] = component.data.port
+                                self.streams[service.number - 1]["image"] = (
+                                    component.data.port
+                                )
                             elif component.data.mime == nrsc5.MIMEType.STATION_LOGO:
-                                self.streams[service.number-1]["logo"] = component.data.port
+                                self.streams[service.number - 1]["logo"] = (
+                                    component.data.port
+                                )
                 elif service.type == nrsc5.ServiceType.DATA:
                     for component in service.components:
                         if component.type == nrsc5.ComponentType.DATA:
@@ -824,7 +908,9 @@ class NRSC5GUI(object):
         self.ls_bookmarks = Gtk.ListStore(str, str, int)
 
         self.lv_bookmarks.set_model(self.ls_bookmarks)
-        self.lv_bookmarks.get_selection().connect("changed", self.on_lv_bookmarks_sel_changed)
+        self.lv_bookmarks.get_selection().connect(
+            "changed", self.on_lv_bookmarks_sel_changed
+        )
 
     def init_stream_info(self):
         self.stream_info = {
@@ -838,7 +924,7 @@ class NRSC5GUI(object):
             "bitrate": 0,
             "mer": [0, 0],
             "ber": [0, 0, 0, 0],
-            "gain": 0
+            "gain": 0,
         }
 
         self.streams = [{}, {}, {}, {}]
@@ -1051,21 +1137,27 @@ class NRSC5Map(object):
 
         if self.config["animate"] and self.config["mode"] == 1:
             # start animation
-            self.animate_timer = threading.Timer(self.config["animation_speed"], self.animate)
+            self.animate_timer = threading.Timer(
+                self.config["animation_speed"], self.animate
+            )
             self.animate_timer.start()
         else:
             # stop animation
             if self.animate_timer is not None:
                 self.animate_timer.cancel()
                 self.animate_timer = None
-            self.map_index = len(self.weather_maps)-1  # reset the animation index
+            self.map_index = len(self.weather_maps) - 1  # reset the animation index
             self.set_map(self.config["mode"])  # show the most recent map
 
     def on_chk_scale_toggled(self, btn):
         self.config["scale"] = btn.get_active()
         if self.config["mode"] == 1:
             if self.config["animate"]:
-                i = len(self.weather_maps)-1 if (self.map_index-1 < 0) else self.map_index-1
+                i = (
+                    len(self.weather_maps) - 1
+                    if (self.map_index - 1 < 0)
+                    else self.map_index - 1
+                )
                 self.show_image(self.weather_maps[i], self.config["scale"])
             else:
                 self.show_image(self.data["weather_now"], self.config["scale"])
@@ -1096,18 +1188,29 @@ class NRSC5Map(object):
             self.animate_busy = True
 
             if self.config["scale"]:
-                map_img = img_to_pixbuf(Image.open(filename).resize((600, 600), Image.LANCZOS))
+                # MODIFIED: Image.LANCZOS is deprecated.
+                map_img = img_to_pixbuf(
+                    Image.open(filename).resize((600, 600), Image.Resampling.LANCZOS)
+                )
             else:
                 map_img = img_to_pixbuf(Image.open(filename))
 
-            if self.config["animate"] and self.config["mode"] == 1 and not self.animate_stop:
+            if (
+                self.config["animate"]
+                and self.config["mode"] == 1
+                and not self.animate_stop
+            ):
                 self.img_map.set_from_pixbuf(map_img)
                 self.map_index += 1
                 if self.map_index >= len(self.weather_maps):
                     self.map_index = 0
-                    self.animate_timer = threading.Timer(2, self.animate)  # show the last image for a longer time
+                    self.animate_timer = threading.Timer(
+                        2, self.animate
+                    )  # show the last image for a longer time
                 else:
-                    self.animate_timer = threading.Timer(self.config["animation_speed"], self.animate)
+                    self.animate_timer = threading.Timer(
+                        self.config["animation_speed"], self.animate
+                    )
 
                 self.animate_timer.start()
             else:
@@ -1121,13 +1224,17 @@ class NRSC5Map(object):
     def show_image(self, filename, scale):
         if os.path.isfile(filename):
             if scale:
-                map_img = Image.open(filename).resize((600, 600), Image.LANCZOS)
+                # MODIFIED: Image.LANCZOS is deprecated.
+                map_img = Image.open(filename).resize(
+                    (600, 600), Image.Resampling.LANCZOS
+                )
             else:
                 map_img = Image.open(filename)
 
             self.img_map.set_from_pixbuf(img_to_pixbuf(map_img))
         else:
-            self.img_map.set_from_stock(Gtk.STOCK_MISSING_IMAGE, Gtk.IconSize.LARGE_TOOLBAR)
+            # MODIFIED: set_from_stock is deprecated.
+            self.img_map.set_from_icon_name("image-missing", Gtk.IconSize.LARGE_TOOLBAR)
 
     def set_map(self, map_type):
         if map_type == 0:
@@ -1140,14 +1247,21 @@ class NRSC5Map(object):
             self.set_map(0)
         elif self.config["mode"] == 1:
             self.set_map(1)
-            self.map_index = len(self.weather_maps)-1
+            self.map_index = len(self.weather_maps) - 1
 
 
 def img_to_pixbuf(img):
     """convert PIL.Image to GdkPixbuf.Pixbuf"""
     data = GLib.Bytes.new(img.tobytes())
-    return GdkPixbuf.Pixbuf.new_from_bytes(data, GdkPixbuf.Colorspace.RGB, 'A' in img.getbands(),
-                                           8, img.width, img.height, len(img.getbands())*img.width)
+    return GdkPixbuf.Pixbuf.new_from_bytes(
+        data,
+        GdkPixbuf.Colorspace.RGB,
+        "A" in img.getbands(),
+        8,
+        img.width,
+        img.height,
+        len(img.getbands()) * img.width,
+    )
 
 
 if __name__ == "__main__":
